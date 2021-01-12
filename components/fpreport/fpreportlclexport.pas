@@ -177,6 +177,7 @@ const
 implementation
 
 uses
+  fpTTF,
   fpwritepng,
   math;
 
@@ -456,6 +457,8 @@ Type
 function TFPReportExportCanvas.GetFont(const AFontName: String): TFont;
 
 Var
+  fontCached : TFPFontCacheItem;   
+  fontStyles : TFontStyles;
   ftFont : TFont;
 
 begin
@@ -465,6 +468,19 @@ begin
     begin
     ftFont:=TFont.create;
     ftFont.Name:=AFontName;
+    fontCached := gTTFontCache.Find(AFontName);
+    if Assigned(fontCached) then
+      begin
+      // This still requires that the Font is available to the lcl back-end,
+      // custom fpTTF fonts are not implicitly available. E.g. on Windows a
+      // custom font would require the use of AddFontMemResourceEx() to
+      // make it available to GDI (and thus lcl Canvas).
+      ftFont.Name := fontCached.FamilyName;
+      fontStyles := [];
+      if fontCached.IsBold then Include(fontStyles, TFontStyle.fsBold);
+      if fontCached.IsItalic then Include(fontStyles, TFontStyle.fsItalic);
+      ftFont.Style := fontStyles;
+      end;  
     Result:=ftFont;
     FFonts.Add(AFontName,Result);
     end;
