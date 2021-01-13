@@ -143,6 +143,7 @@ type
     function    CoordToRect(const APos: TFPReportPoint; const AWidth: TFPReportUnits=0; const AHeight: TFPReportUnits=0): TRect;
     function    HmmToPixels(const AValue: TFPReportUnits): Integer;
     function    VmmToPixels(const AValue: TFPReportUnits): Integer;
+    function    PtToPixels(const AValue: Integer): Integer;
     Function    GetPageRect(APage : TFPReportCustomPage; WithoutMargin : Boolean = False)  : TRect;
     Function    GetBandRect(L : TFPReportLayout;IncludeHandle: Boolean) : TRect;
     Function    GetBandRect(ABand : TFPReportCustomBand; IncludeHandle : Boolean) : TRect;
@@ -172,6 +173,7 @@ type
 
 const
   cInchToMM = 25.4;
+  cPtToDPI = 72;
   RGBA_Width = 4;
 
 implementation
@@ -281,6 +283,15 @@ begin
   Result := Round(AValue * (VDPI * Zoom/ cInchToMM));
 end;
 
+function TFPReportExportCanvas.PtToPixels(const AValue: Integer): Integer;
+begin
+  // This is used for line widths and ideally should be individually 
+  // calculated for every line angle as HDPI and VDPI differ on some
+  // printers. They do not differ greatly though (usually factor 2)
+  // so we get away with an average to keep things simple.
+  Result := Round(AValue * (((HDPI + VDPI) / 2) * Zoom / cPtToDPI));
+end;
+
 procedure TFPReportExportCanvas.SetupPageRender(const APage: TFPReportPage);
 
 begin
@@ -385,7 +396,7 @@ begin
   begin
     Canvas.Pen.Style:=AFrame.Pen;
     Canvas.Pen.Color:= RGBtoBGR(AFrame.Color);
-    Canvas.Pen.Width:=AFrame.Width;
+    Canvas.Pen.Width:=PtToPixels(AFrame.Width);
   end;
   {$IFDEF DEBUGRD}
   Writeln('Rendering frame [',AFrame.Shape,'] (',ARect.Left,',',ARect.Top,',',ARect.right,',',ARect.Bottom,') : ',(bStroke or bFill));
@@ -780,7 +791,7 @@ begin
     exit;
   Canvas.Pen.Color:=TFPReportShape(AShape).Color;
   Canvas.Pen.Style:=psSolid;
-  Canvas.Pen.Width:=1;
+  Canvas.Pen.Width:=PtToPixels(1);
   lPt1.Left := BL.Left + SL.Left;
   lPt1.Top := BL.Top + SL.Top;
   case TFPReportShape(AShape).ShapeType of
